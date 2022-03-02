@@ -1,0 +1,238 @@
+<html>
+    <head>
+
+        <link rel="stylesheet" href="https://fonts.google.com/specimen/Roboto">
+        <link rel="stylesheet" href="https://fonts.google.com/specimen/Lora">
+        <link rel="stylesheet" href="https://fonts.google.com/specimen/Big+Shoulders+Text">
+
+        <style>
+
+
+        .grid-container {
+            max-width: 1050px;
+            margin: 0 auto;
+            /* auto centers the div */
+            font-family: "Roboto", sans-serif;
+            color: #4D4D4D;
+        }
+
+        svg {
+            overflow: visible;
+        }
+
+        .headline {
+            font-family: "Roboto", sans-serif;
+        }
+
+
+        .source {
+            font-family: "Lora", serif;
+        }
+
+        .y .tick line {
+            opacity: .5;
+            stroke-dasharray: 3,3;
+            color: "#4D4D4D";
+        }
+
+        .x .tick line {
+            opacity: .5;
+            color: "#4D4D4D";
+        }
+
+        .y .domain {
+            display: none;
+        }
+
+        .x .domain {
+            display: none;
+        }
+
+        .pop-up {
+            pointer-events: none;
+            border: 1px solid black;
+            background-color: white;
+            font-family: "Roboto", sans-serif;
+            font-size: 16px;
+            display: none;
+            position: absolute;
+        }
+        </style>
+    </head>
+    <body>
+        <div class = "grid-container">
+            <div class = "grid-item" id = "plot1">
+                <h1 class = "headline">
+                    Number of Vacant Lots Sold Per Month
+                </h1>
+                <p1 class = "source">
+                    Source: City Owned Land System
+                </p1>
+                <div class = "pop-up"></div>  
+            </div>
+            <div class = "grid-item" id = "plot2">
+                <h1 class = "headline">
+                    Number of Vacant Lots Reviewed by AIS
+                </h1>
+                <p1 class = "source">
+                    Source: City Owned Land System
+                </p1>
+            </div> 
+        </div>
+        <script src="https://d3js.org/d3.v6.min.js"></script>
+        <script>
+
+            let dataset = "lots_sold.csv" // dataset 
+            let dataset2 = "ais_review.csv"
+
+            let width = 1050
+            let height = 500
+
+            let svg = d3.select("body").select("#plot1")
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height),
+
+                svg2 = d3.select("body").select('#plot2')
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height)
+
+            let margin = {top: 20, right: 30, bottom: 30, left: 50}
+
+            let popup = d3.select(".pop-up");   
+
+            d3.csv(dataset).then(function (data) {
+                console.log("loaded data")
+
+                data.forEach(d => {
+                    d.category = d.Date_Sold // x-var of choice
+                    d.value = +d.Address // use y-var of choice here
+                })
+
+                console.log(data)
+
+                let category = data.map(d => d.category) 
+
+                let x = d3.scaleBand()
+                    .domain(category)
+                    .range([margin.left, width-margin.right])
+                    .padding(.4)
+
+                let y = d3.scaleLinear()
+                    .domain([0, d3.max(data.map(d => d.value))])
+                    .range([height-margin.bottom, margin.top])
+                
+                let yAxisSettings = d3.axisLeft(y)
+                    .tickSize(0 - width)
+                
+                let xAxisSettings = d3.axisBottom(x)
+                    .ticks(10)
+                    .tickSize(12)
+                    //.tickFormat(d3.timeFormat("%Y-%m-%d"))
+                
+                let yAxisTicks = svg.append("g")
+                    .attr("class", "y axis")
+                    .call(yAxisSettings)
+                    .attr("transform", `translate(${margin.left}, 0)`)
+
+                let xAxisTicks = svg.append("g")
+                    .attr("class", "x axis")
+                    .call(xAxisSettings)
+                    .attr("transform", `translate(0, ${height - margin.bottom})`)
+
+                let bars = svg.append("g")
+                    .attr("class", "bars")
+                    .selectAll(".bar")
+                    .data(data)
+                    .join("rect")
+                    .attr("class", "bar")
+                    .attr("x", d => x(d.category)) // this is your x value!
+                    .attr("width", x.bandwidth)
+                    .attr("y", d => y(d.value))
+                    .attr("height", d => y(0) - y(d.value))
+                    .style("fill", "#41B6E6") // city blue
+                    .on("mousemove", (event, d) => {
+                        let lang = (d.value) + " lots sold" + "<br>" + (d.category)
+                        popup
+                            .style("left", (event.x + 10) + "px")
+                            .style("top", (event.y + 10) + "px")
+                            .style("display", "inline-block")
+                            .html(lang)
+                        console.log({event})
+                    })
+                    .on("mouseout", d => {
+                        popup
+                            .style("display", "none")
+                    })
+                
+            })
+
+            d3.csv(dataset2).then(function (data) {
+                console.log("loaded data")
+
+                data.forEach(d => {
+                    d.category = d.AIS_Category // x-var of choice
+                    d.value = +d.Address // use y-var of choice here
+                })
+
+                console.log(data)
+
+                let category = data.map(d => d.category) 
+
+                let x = d3.scaleBand()
+                    .domain(category)
+                    .range([margin.left, width-margin.right])
+                    .padding(.4)
+
+                let y = d3.scaleLinear()
+                    .domain([0, d3.max(data.map(d => d.value))])
+                    .range([height-margin.bottom, margin.top])
+                
+                let yAxisSettings = d3.axisLeft(y)
+                    .tickSize(0 - width)
+                
+                let xAxisSettings = d3.axisBottom(x)
+                    .ticks(10)
+                    .tickSize(12)
+                
+                let yAxisTicks = svg2.append("g")
+                    .attr("class", "y axis")
+                    .call(yAxisSettings)
+                    .attr("transform", `translate(${margin.left}, 0)`)
+
+                let xAxisTicks = svg2.append("g")
+                    .attr("class", "x axis")
+                    .call(xAxisSettings)
+                    .attr("transform", `translate(0, ${height - margin.bottom})`)
+
+                let bars = svg2.append("g")
+                    .attr("class", "bars")
+                    .selectAll(".bar")
+                    .data(data)
+                    .join("rect")
+                    .attr("class", "bar")
+                    .attr("x", d => x(d.category)) // this is your x value!
+                    .attr("width", x.bandwidth)
+                    .attr("y", d => y(d.value))
+                    .attr("height", d => y(0) - y(d.value))
+                    .style("fill", "#41B6E6") // city blue
+                    .on("mousemove", (event, d) => {
+                        let lang = (d.value) + " lots"
+                        popup
+                            .style("left", (event.x) + "px")
+                            .style("top", (event.y) + "px")
+                            .style("display", "inline-block")
+                            .html(lang)
+                        console.log({event})
+                    })
+                    .on("mouseout", d => {
+                        popup
+                            .style("display", "none")
+                    })
+            })
+        
+        
+        </script>
+    </body>
+</html>
